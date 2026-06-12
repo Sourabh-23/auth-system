@@ -1,4 +1,9 @@
-const { registerUser,loginUser,refreshAccessToken   } = require('./auth.service');
+const { registerUser,
+  loginUser,
+  refreshAccessToken,
+  logoutUser,
+  forgotPassword,
+  resetPassword  } = require('./auth.service');
 
 const register = async (req, res) => {
   try {
@@ -72,4 +77,69 @@ const refreshToken = async (req, res) => {
   }
 };
 
-module.exports = { register, login, refreshToken };
+const logout = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Refresh token is required' });
+    }
+
+    const data = await logoutUser(refreshToken);
+
+    res.status(200).json(data);
+  } catch (error) {
+    if (error.message === 'Invalid refresh token') {
+      return res.status(401).json({ message: error.message });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+const forgotPasswordHandler = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const data = await forgotPassword(email);
+
+    res.status(200).json(data);
+  } catch (error) {
+    if (error.message === 'User not found') {
+      return res.status(404).json({ message: error.message });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+
+const resetPasswordHandler = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+
+    if (!token || !newPassword) {
+      return res.status(400).json({ message: 'Token and new password are required' });
+    }
+
+    const data = await resetPassword(token, newPassword);
+
+    res.status(200).json(data);
+  } catch (error) {
+    if (
+      error.message === 'Invalid reset token' ||
+      error.message === 'Reset token already used' ||
+      error.message === 'Reset token expired'
+    ) {
+      return res.status(401).json({ message: error.message });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+module.exports = { register, login, refreshToken, logout, forgotPasswordHandler,resetPasswordHandler  };
+
+

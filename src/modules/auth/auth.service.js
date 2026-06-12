@@ -101,5 +101,86 @@ const refreshAccessToken = async (refreshToken) => {
   return { accessToken };
 };
 
-module.exports = { registerUser, loginUser, refreshAccessToken };
+const logoutUser = async (refreshToken) => {
+  // DB mein token revoke karo
+  const updated = await db('refresh_tokens')
+    .where({ token: refreshToken })
+    .update({ is_revoked: true });
+
+  if (!updated) {
+    throw new Error('Invalid refresh token');
+  }
+
+  return { message: 'Logged out successfully' };
+};
+
+
+
+const forgotPassword = async (email) => {
+  // Step 1: Email exist karta hai?
+  const user = await db('users').where({ email }).first();
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Step 2: Random reset token banao
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  // Step 3: 15 min expiry
+  const expiresAt = new Date();
+  expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+
+  // Step 4: DB mein save karo
+  await db('password_reset_tokens').insert({
+    user_id: user.id,
+    token: resetToken,
+    expires_at: expiresAt,
+  });
+
+  // Step 5: Email bhejo (abhi console pe print karenge)
+  console.log(`Reset link: http://localhost:3000/api/auth/reset-password?token=${resetToken}`);
+
+  return { message: 'Password reset link sent to your email' };
+};
+
+const resetPassword = async (token, newPassword) => {
+  // Step 1: Token DB mein exist karta hai?
+  const tokenRecord = await db('password_reset_tokens')
+    .where({ token })
+    .first();
+
+  if (!tokenRecord) {
+    throw new Error('Invalid reset token');
+  }
+
+  // Step 2: Token already use hua?
+  if (tokenRecord.is_used) {
+    throw new Error('Reset token already used');
+  }
+
+  // Step 3: Token expire hua?
+  if (new Date() > new Date(tokenRecord.expires_at)) {
+    throw new Error('Reset token expired');
+  }
+
+  // Step 4: Naya password hash karo
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+  // Step 5: Password update karo
+  await db('users')
+    .where({ id: tokenRecord.user_id })
+    .update({ password: hashedPassword });
+
+  // Step 6: Token is_used = true karo
+  await db('password_reset_tokens')
+    .where({ token })
+    .update({ is_used: true });
+
+  return { message: 'Password reset successfully' };
+};
+
+module.exports = { registerUser, loginUser, refreshAccessToken, logoutUser, forgotPassword, resetPassword };
+
+
 
