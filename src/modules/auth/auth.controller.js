@@ -1,4 +1,4 @@
-const { registerUser,loginUser  } = require('./auth.service');
+const { registerUser,loginUser,refreshAccessToken   } = require('./auth.service');
 
 const register = async (req, res) => {
   try {
@@ -46,4 +46,30 @@ const login = async (req, res) => {
   }
 };
 
-module.exports = { register, login };
+const refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ message: 'Refresh token is required' });
+    }
+
+    const data = await refreshAccessToken(refreshToken);
+
+    res.status(200).json({
+      message: 'Access token refreshed successfully',
+      ...data,
+    });
+  } catch (error) {
+    if (
+      error.message === 'Invalid refresh token' ||
+      error.message === 'Refresh token has been revoked' ||
+      error.message === 'Refresh token expired'
+    ) {
+      return res.status(401).json({ message: error.message });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+module.exports = { register, login, refreshToken };
