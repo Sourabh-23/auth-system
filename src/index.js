@@ -1,6 +1,7 @@
 const express = require('express');
 const dotenv = require('dotenv');
 const db = require('./config/db');
+const authRoutes = require('./modules/auth/auth.routes');
 
 dotenv.config();
 
@@ -12,6 +13,9 @@ app.use(express.json());
 db.raw('SELECT 1')
   .then(() => console.log('✅ Database connected successfully'))
   .catch((err) => console.error('❌ Database connection failed:', err));
+
+// Routes
+app.use('/api/auth', authRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
