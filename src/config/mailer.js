@@ -33,4 +33,25 @@ const sendPasswordResetEmail = async (toEmail, resetToken) => {
   });
 };
 
-module.exports = { sendPasswordResetEmail };
+const sendOTPEmail = async (toEmail, otpCode) => {
+  await transporter.sendMail({
+    from: process.env.MAILTRAP_FROM,
+    to: toEmail,
+    subject: 'Your OTP Code',
+    html: `
+      <h2>Your OTP Code</h2>
+      <p>Neeche diya OTP code use karo login karne ke liye:</p>
+      <h1 style="
+        background-color: #f4f4f4;
+        padding: 20px;
+        text-align: center;
+        letter-spacing: 10px;
+        font-size: 40px;
+      ">${otpCode}</h1>
+      <p>Ye OTP <b>10 minutes</b> mein expire ho jaayega.</p>
+      <p>Agar tumne ye request nahi ki toh ignore karo.</p>
+    `,
+  });
+};
+
+module.exports = { sendPasswordResetEmail, sendOTPEmail };
