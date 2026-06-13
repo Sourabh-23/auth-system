@@ -29,6 +29,18 @@ A Node.js, Express, PostgreSQL authentication system with JWT access tokens, ref
 | express-rate-limit | Limiting repeated requests to reduce brute force attacks |
 | Helmet.js | Adding secure HTTP headers |
 
+## Two Factor Authentication
+
+Login can use email OTP when 2FA is enabled. After login, the user receives an OTP and must verify it with `/verify-otp` to get access and refresh tokens.
+
+For local development, 2FA can be temporarily disabled with:
+
+```env
+TWO_FACTOR_ENABLED=false
+```
+
+When `TWO_FACTOR_ENABLED` is not `true`, `/login` returns tokens directly after email/password validation. Keep 2FA enabled in production.
+
 ## API Routes
 
 Base URL:
@@ -87,6 +99,7 @@ DB_NAME=auth_system
 
 JWT_SECRET=your_jwt_secret
 JWT_EXPIRES_IN=15m
+TWO_FACTOR_ENABLED=true
 
 MAIL_HOST=sandbox.smtp.mailtrap.io
 MAIL_PORT=2525

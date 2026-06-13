@@ -1,12 +1,12 @@
 const express = require('express');
 const dotenv = require('dotenv');
+dotenv.config();
+
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const db = require('./config/db');
 const authRoutes = require('./modules/auth/auth.routes');
 
-
-dotenv.config();
 
 const app = express();
 

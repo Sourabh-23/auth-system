@@ -8,11 +8,27 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+const isTwoFactorEnabled = () => process.env.TWO_FACTOR_ENABLED === 'true';
+
+const createSession = async (user) => {
+  const accessToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+  const refreshToken = crypto.randomBytes(40).toString('hex');
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+
+  await db('refresh_tokens').insert({ user_id: user.id, token: refreshToken, expires_at: expiresAt });
+
+  return {
+    accessToken,
+    refreshToken,
+    user: { id: user.id, name: user.name, email: user.email, status: user.status, role: user.role },
+  };
+};
+
 const registerUser = async ({ name, middle_name, surname, email, password }) => {
   const existingUser = await db('users').where({ email }).first();
-  if (existingUser) {
-    throw new Error('Email already exists');
-  }
+  if (existingUser) throw new Error('Email already exists');
+
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
   const [user] = await db('users')
@@ -27,6 +43,10 @@ const loginUser = async ({ email, password }) => {
 
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) throw new Error('Invalid email or password');
+
+  if (!isTwoFactorEnabled()) {
+    return createSession(user);
+  }
 
   const otpCode = generateOTP();
   const expiresAt = new Date();
@@ -48,19 +68,9 @@ const verifyOTP = async ({ userId, otpCode }) => {
   await db('otp_tokens').where({ id: otpRecord.id }).update({ is_used: true });
 
   const user = await db('users').where({ id: userId }).first();
+  const session = await createSession(user);
 
-  const accessToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
-  const refreshToken = crypto.randomBytes(40).toString('hex');
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7);
-
-  await db('refresh_tokens').insert({ user_id: user.id, token: refreshToken, expires_at: expiresAt });
-
-  return {
-    accessToken,
-    refreshToken,
-    user: { id: user.id, name: user.name, email: user.email, status: user.status, role: user.role },
-  };
+  return session;
 };
 
 const refreshAccessToken = async (refreshToken) => {
