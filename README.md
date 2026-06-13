@@ -17,15 +17,17 @@ A Node.js, Express, PostgreSQL authentication system with JWT access tokens, ref
 
 ## Tech Stack
 
-- Node.js
-- Express.js
-- PostgreSQL
-- Knex.js
-- bcryptjs
-- jsonwebtoken
-- nodemailer
-- express-rate-limit
-- Helmet.js
+| Technology | Use |
+| --- | --- |
+| Node.js | JavaScript runtime for running the backend server |
+| Express.js | API routing, middleware handling, and HTTP server setup |
+| PostgreSQL | Database for users, refresh tokens, and password reset tokens |
+| Knex.js | Query builder and database migrations |
+| bcryptjs | Password hashing before storing passwords in the database |
+| jsonwebtoken | Creating and verifying JWT access tokens |
+| nodemailer | Sending forgot-password reset emails through Mailtrap |
+| express-rate-limit | Limiting repeated requests to reduce brute force attacks |
+| Helmet.js | Adding secure HTTP headers |
 
 ## API Routes
 
