@@ -1,11 +1,31 @@
 const express = require('express');
 const dotenv = require('dotenv');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const db = require('./config/db');
 const authRoutes = require('./modules/auth/auth.routes');
 
 dotenv.config();
 
 const app = express();
+
+// Helmet - Security headers
+app.use(helmet());
+
+// Rate Limiting - Global (har route pe)
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requests per 15 min
+  message: { message: 'Too many requests, please try again later.' },
+});
+app.use(globalLimiter);
+
+// Auth specific limiter - Login/Register pe strict
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // sirf 10 requests per 15 min
+  message: { message: 'Too many attempts, please try again after 15 minutes.' },
+});
 
 app.use(express.json());
 
@@ -15,7 +35,7 @@ db.raw('SELECT 1')
   .catch((err) => console.error('❌ Database connection failed:', err));
 
 // Routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 
 // Health check route
 app.get('/', (req, res) => {
