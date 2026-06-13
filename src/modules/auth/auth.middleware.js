@@ -27,6 +27,7 @@ const authenticate = async (req, res, next) => {
       name: user.name,
       email: user.email,
       status: user.status,
+      role: user.role,
     };
 
     next();
@@ -40,5 +41,18 @@ const authenticate = async (req, res, next) => {
     res.status(500).json({ message: 'Internal server error.' });
   }
 };
+const authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
 
-module.exports = { authenticate };
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ message: 'Forbidden. You do not have permission.' });
+    }
+
+    next();
+  };
+};
+
+module.exports = { authenticate, authorize };
