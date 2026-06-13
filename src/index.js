@@ -5,9 +5,25 @@ const rateLimit = require('express-rate-limit');
 const db = require('./config/db');
 const authRoutes = require('./modules/auth/auth.routes');
 
+
 dotenv.config();
 
 const app = express();
+
+app.use((req, res, next) => {
+  if (!req.originalUrl.startsWith('/api')) {
+    return next();
+  }
+
+  const startedAt = Date.now();
+
+  res.on('finish', () => {
+    const duration = Date.now() - startedAt;
+    console.log(`${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`);
+  });
+
+  next();
+});
 
 // Helmet - Security headers
 app.use(helmet());

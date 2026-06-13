@@ -2,6 +2,7 @@ const db = require('../../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { sendPasswordResetEmail } = require('../../config/mailer');
 
 const registerUser = async ({ name, middle_name, surname, email, password }) => {
   // Step 1: Check if email already exists
@@ -114,35 +115,6 @@ const logoutUser = async (refreshToken) => {
   return { message: 'Logged out successfully' };
 };
 
-
-
-const forgotPassword = async (email) => {
-  // Step 1: Email exist karta hai?
-  const user = await db('users').where({ email }).first();
-  if (!user) {
-    throw new Error('User not found');
-  }
-
-  // Step 2: Random reset token banao
-  const resetToken = crypto.randomBytes(32).toString('hex');
-
-  // Step 3: 15 min expiry
-  const expiresAt = new Date();
-  expiresAt.setMinutes(expiresAt.getMinutes() + 15);
-
-  // Step 4: DB mein save karo
-  await db('password_reset_tokens').insert({
-    user_id: user.id,
-    token: resetToken,
-    expires_at: expiresAt,
-  });
-
-  // Step 5: Email bhejo (abhi console pe print karenge)
-  console.log(`Reset link: http://localhost:3000/api/auth/reset-password?token=${resetToken}`);
-
-  return { message: 'Password reset link sent to your email' };
-};
-
 const resetPassword = async (token, newPassword) => {
   // Step 1: Token DB mein exist karta hai?
   const tokenRecord = await db('password_reset_tokens')
@@ -178,6 +150,32 @@ const resetPassword = async (token, newPassword) => {
     .update({ is_used: true });
 
   return { message: 'Password reset successfully' };
+};
+const forgotPassword = async (email) => {
+  // Step 1: Email exist karta hai?
+  const user = await db('users').where({ email }).first();
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Step 2: Random reset token banao
+  const resetToken = crypto.randomBytes(32).toString('hex');
+
+  // Step 3: 15 min expiry
+  const expiresAt = new Date();
+  expiresAt.setMinutes(expiresAt.getMinutes() + 15);
+
+  // Step 4: DB mein save karo
+  await db('password_reset_tokens').insert({
+    user_id: user.id,
+    token: resetToken,
+    expires_at: expiresAt,
+  });
+
+  // Step 5: Actual email bhejo
+  await sendPasswordResetEmail(email, resetToken);
+
+  return { message: 'Password reset link sent to your email' };
 };
 
 module.exports = { registerUser, loginUser, refreshAccessToken, logoutUser, forgotPassword, resetPassword };
